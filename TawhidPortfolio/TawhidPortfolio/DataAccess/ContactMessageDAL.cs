@@ -100,6 +100,15 @@ namespace TawhidPortfolio.DataAccess
         }
 
         /// <summary>
+        /// Get all messages - alias for GetAllContactMessages for compatibility
+        /// </summary>
+        /// <returns>List of ContactMessage objects</returns>
+        public List<ContactMessage> GetAllMessages()
+        {
+            return GetAllContactMessages();
+        }
+
+        /// <summary>
         /// Get a specific contact message by ID
         /// </summary>
         /// <param name="id">Message ID</param>
@@ -173,6 +182,16 @@ namespace TawhidPortfolio.DataAccess
                 System.Diagnostics.Debug.WriteLine($"Error deleting contact message: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Delete message - alias for DeleteContactMessage for compatibility
+        /// </summary>
+        /// <param name="id">Message ID to delete</param>
+        /// <returns>True if successful, false otherwise</returns>
+        public bool DeleteMessage(int id)
+        {
+            return DeleteContactMessage(id);
         }
     }
 }

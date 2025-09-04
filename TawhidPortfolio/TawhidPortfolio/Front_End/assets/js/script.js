@@ -26,6 +26,101 @@ function typeWriter() {
     setTimeout(typeWriter, isDeleting ? 40 : 80);
 }
 
+// Dynamic content loading
+function loadDynamicContent() {
+    loadProjects();
+    loadBlogPosts();
+}
+
+// Load projects from database
+function loadProjects() {
+    const projectsContainer = document.querySelector('.projects-section');
+    if (!projectsContainer) return;
+
+    fetch('/ProjectsAPI.aspx')
+        .then(response => response.json())
+        .then(projects => {
+            if (projects && projects.length > 0) {
+                // Find the projects grid container (after the h2)
+                let projectsGrid = projectsContainer.querySelector('.projects-grid');
+                if (!projectsGrid) {
+                    // Create projects grid if it doesn't exist
+                    projectsGrid = document.createElement('div');
+                    projectsGrid.className = 'projects-grid';
+                    projectsContainer.appendChild(projectsGrid);
+                }
+
+                // Clear existing projects (except title)
+                projectsGrid.innerHTML = '';
+
+                // Add projects from database
+                projects.forEach(project => {
+                    const projectElement = document.createElement('a');
+                    projectElement.href = project.ProjectUrl || '#';
+                    projectElement.target = '_blank';
+                    projectElement.className = 'project-link';
+                    
+                    projectElement.innerHTML = `
+                        <div class="project-item">
+                            <img src="${project.ImageUrl || 'assets/images/project-placeholder.png'}" alt="${project.Title}">
+                            <div class="project-overlay">
+                                <h3>${project.Title}</h3>
+                                <p>${project.Description}</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    projectsGrid.appendChild(projectElement);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading projects:', error);
+        });
+}
+
+// Load blog posts from database
+function loadBlogPosts() {
+    const blogContainer = document.querySelector('.blog-grid');
+    if (!blogContainer) return;
+
+    fetch('/BlogsAPI.aspx')
+        .then(response => response.json())
+        .then(blogPosts => {
+            if (blogPosts && blogPosts.length > 0) {
+                // Clear existing blog posts
+                blogContainer.innerHTML = '';
+
+                // Add blog posts from database
+                blogPosts.forEach(blog => {
+                    const blogElement = document.createElement('div');
+                    blogElement.className = 'blog-card';
+                    
+                    // Create a fallback image if no image URL is provided
+                    const imageUrl = blog.ImageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzBhMGUyNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjMDBkNGZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0cHgiPkJsb2cgUGxhY2Vob2xkZXI8L3RleHQ+PC9zdmc+';
+                    
+                    blogElement.innerHTML = `
+                        <div class="blog-image">
+                            <img src="${imageUrl}" alt="${blog.Title}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzBhMGUyNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjMDBkNGZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0cHgiPkJsb2cgUGxhY2Vob2xkZXI8L3RleHQ+PC9zdmc+'">
+                        </div>
+                        <div class="blog-content-area">
+                            <div class="blog-content-text">
+                                <h3>${blog.Title}</h3>
+                                <p>${blog.Description}</p>
+                            </div>
+                            <a href="#" class="blog-read-more">Read More</a>
+                        </div>
+                    `;
+                    
+                    blogContainer.appendChild(blogElement);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading blog posts:', error);
+        });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     typeWriter();
@@ -33,6 +128,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initHamburgerMenu();
     initScrollProgress();
     initFadeInAnimations();
+    setupContactForm();
+    loadDynamicContent(); // Load dynamic content from database
     
     // Delayed initialization to avoid conflicts
     setTimeout(() => {
@@ -500,17 +597,17 @@ function initHamburgerMenu() {
     });
 }
 
-// Enhanced contact form handling
+// Enhanced contact form handling for Formspree
 function setupContactForm() {
     const contactForm = document.querySelector('.contact-form');
     
     if (contactForm) {
-        contactForm.addEventListener('submit', handleContactFormSubmission);
+        contactForm.addEventListener('submit', handleFormspreeSubmission);
     }
 }
 
-// Handle contact form submission
-function handleContactFormSubmission(e) {
+// Handle Formspree form submission
+function handleFormspreeSubmission(e) {
     e.preventDefault();
     
     const form = e.target;
@@ -518,14 +615,6 @@ function handleContactFormSubmission(e) {
     const submitButton = form.querySelector('.btn-send');
     const formStatus = document.getElementById('formStatus');
     const originalText = submitButton.textContent;
-    
-    console.log('=== CONTACT FORM DEBUG START ===');
-    console.log('Form data:', {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        subject: formData.get('subject'),
-        message: formData.get('message')
-    });
     
     // Disable button and show loading state
     submitButton.disabled = true;
@@ -535,68 +624,43 @@ function handleContactFormSubmission(e) {
     // Hide any previous status messages
     formStatus.style.display = 'none';
     
-    // Use the exact URL since you confirmed backend is on 44331
-    const apiUrl = 'https://localhost:44331/ContactAPI.aspx';
-    console.log('Submitting to:', apiUrl);
+    // Get the Formspree action URL from the form
+    const formspreeUrl = form.action;
     
-    fetch(apiUrl, {
+    if (!formspreeUrl || formspreeUrl.includes('YOUR_FORM_ID')) {
+        showNotification('Please configure your Formspree form ID first!', 'error');
+        resetSubmitButton();
+        return;
+    }
+    
+    fetch(formspreeUrl, {
         method: 'POST',
         body: formData,
-        mode: 'cors'
+        headers: {
+            'Accept': 'application/json'
+        }
     })
     .then(response => {
-        console.log('Response received:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-            ok: response.ok
-        });
-        
-        // Log response text before trying to parse as JSON
-        return response.text().then(text => {
-            console.log('Raw response text:', text);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${text}`);
-            }
-            
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                console.error('Failed to parse JSON:', e);
-                throw new Error(`Invalid JSON response: ${text}`);
-            }
-        });
-    })
-    .then(data => {
-        console.log('Parsed response data:', data);
-        if (data.success) {
+        if (response.ok) {
             // Success
             showNotification('Message sent successfully! Thank you for contacting me.', 'success');
             form.reset();
             formStatus.innerHTML = '<p style="color: #4CAF50; text-align: center; margin: 10px 0;">✓ Message sent successfully!</p>';
             formStatus.style.display = 'block';
         } else {
-            throw new Error(data.message || 'Failed to send message');
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to send message');
+            });
         }
     })
     .catch(error => {
-        console.error('=== ERROR DETAILS ===');
-        console.error('Error type:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Full error:', error);
-        
-        showNotification('Failed to send message. Check console for details.', 'error');
+        console.error('Formspree submission error:', error);
+        showNotification('Failed to send message. Please try again.', 'error');
         formStatus.innerHTML = `<p style="color: #f44336; text-align: center; margin: 10px 0;">✗ Error: ${error.message}</p>`;
         formStatus.style.display = 'block';
     })
     .finally(() => {
-        console.log('=== CONTACT FORM DEBUG END ===');
-        
-        // Re-enable button
-        submitButton.disabled = false;
-        submitButton.textContent = originalText;
-        submitButton.style.opacity = '1';
+        resetSubmitButton();
         
         // Hide status message after 5 seconds
         setTimeout(() => {
@@ -605,6 +669,12 @@ function handleContactFormSubmission(e) {
             }
         }, 5000);
     });
+    
+    function resetSubmitButton() {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+        submitButton.style.opacity = '1';
+    }
 }
 
 // Show notification to user
